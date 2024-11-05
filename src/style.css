@@ -48,16 +48,26 @@ h1 {
   height: 80vh;
 }
 
+#buttonContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh; /* Full viewport height */
+}
+
 button {
   border-radius: 8px;
   border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
+  padding: 1em 2em; /* Increase padding to make the button bigger */
+  font-size: 1.5em; /* Increase font size */
   font-weight: 500;
   font-family: inherit;
   background-color: #1a1a1a;
   cursor: pointer;
   transition: border-color 0.25s;
+  display: block; /* Make the button a block element */
+  margin: 0 auto; /* Center the button horizontally */
+  text-align: center; /* Center the text inside the button */
 }
 
 button:hover {
