@@ -41,10 +41,35 @@ leaflet.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
     '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
 }).addTo(map);
 
-// Add a marker for the player
-const playerMarker = leaflet.marker([PLAYER_LAT, PLAYER_LNG]);
+// After your initial constants, add this custom icon definition
+const playerIcon = leaflet.icon({
+  iconUrl:
+    "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
+
+// Then modify your player marker creation to use this icon
+const playerMarker = leaflet.marker([PLAYER_LAT, PLAYER_LNG], {
+  icon: playerIcon,
+});
 playerMarker.bindTooltip("That's you!");
 playerMarker.addTo(map);
+
+const cacheIcon = leaflet.icon({
+  iconUrl:
+    "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
 
 function generateCaches() {
   for (let i = -NEIGHBORHOOD_SIZE; i <= NEIGHBORHOOD_SIZE; i++) {
@@ -59,7 +84,9 @@ function generateCaches() {
 }
 
 function createCache(cell: Cell, lat: number, lng: number) {
-  const cacheMarker = leaflet.marker([lat, lng]);
+  const cacheMarker = leaflet.marker([lat, lng], {
+    icon: cacheIcon,
+  });
   const coins = Math.floor(luck(`${cell.i},${cell.j},coins`) * 10);
 
   const cache: Cache = {
