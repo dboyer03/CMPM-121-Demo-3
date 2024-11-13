@@ -1,6 +1,15 @@
+// @deno-types="npm:@types/leaflet@^1.9.14"
 import leaflet from "leaflet";
-import luck from "./luck.ts";
+
+// Style sheets
+import "leaflet/dist/leaflet.css";
+import "./style.css";
+
+// Fix missing marker images
 import "./leafletWorkaround.ts";
+
+// Deterministic random number generator
+import luck from "./luck.ts";
 
 // Initial player location
 const PLAYER_LAT = 36.98949379578401;
