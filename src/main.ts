@@ -41,7 +41,7 @@ leaflet.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
     '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
 }).addTo(map);
 
-// After your initial constants, add this custom icon definition
+// Custom icon definition
 const playerIcon = leaflet.icon({
   iconUrl:
     "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png",
@@ -53,7 +53,7 @@ const playerIcon = leaflet.icon({
   shadowSize: [41, 41],
 });
 
-// Then modify your player marker creation to use this icon
+// Player marker
 const playerMarker = leaflet.marker([PLAYER_LAT, PLAYER_LNG], {
   icon: playerIcon,
 });
