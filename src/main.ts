@@ -129,7 +129,9 @@ function createCache(cell: Cell, lat: number, lng: number) {
 // Create a popup for the cache displaying its coins and actions
 function createCachePopup(cache: Cache): HTMLElement {
   const container = document.createElement("div");
-  const coinList = cache.coins.map(coin => `${coin.cell.i}:${coin.cell.j}#${coin.serial}`).join(", ");
+  const coinList = cache.coins.map((coin) =>
+    `${coin.cell.i}:${coin.cell.j}#${coin.serial}`
+  ).join(", ");
   const content = `
         <div>
             <p>Cache at (${cache.cell.i}, ${cache.cell.j})</p>
@@ -180,7 +182,9 @@ function depositCoins(cell: Cell) {
 function updateInventoryDisplay() {
   const inventory = document.getElementById("inventory");
   if (inventory) {
-    const coinList = playerCoins.map(coin => `${coin.cell.i}:${coin.cell.j}#${coin.serial}`).join(", ");
+    const coinList = playerCoins.map((coin) =>
+      `${coin.cell.i}:${coin.cell.j}#${coin.serial}`
+    ).join(", ");
     inventory.textContent = `Current Coins: ${coinList}`;
   }
 }
