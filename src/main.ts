@@ -14,20 +14,23 @@ import luck from "./luck.ts";
 // Initial player location
 const PLAYER_LAT = 36.98949379578401;
 const PLAYER_LNG = -122.06277128548504;
-const TILE_DEGREES = 0.0001;
-const NEIGHBORHOOD_SIZE = 8;
-const CACHE_SPAWN_PROBABILITY = 0.1;
+const TILE_DEGREES = 0.0001; // Size of each tile in degrees
+const NEIGHBORHOOD_SIZE = 8; // Size of the neighborhood around the player
+const CACHE_SPAWN_PROBABILITY = 0.1; // Probability of spawning a cache in a tile
 
+// Interface representing a grid cell
 interface Cell {
   i: number;
   j: number;
 }
 
+// Interface representing a coin
 interface Coin {
   cell: Cell;
   serial: number;
 }
 
+// Interface representing a cache
 interface Cache {
   cell: Cell;
   coins: Coin[];
@@ -56,7 +59,7 @@ leaflet.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
     '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
 }).addTo(map);
 
-// Custom icon definition
+// Custom icon definition for the player marker
 const playerIcon = leaflet.icon({
   iconUrl:
     "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png",
@@ -75,6 +78,7 @@ const playerMarker = leaflet.marker([PLAYER_LAT, PLAYER_LNG], {
 playerMarker.bindTooltip("That's you!");
 playerMarker.addTo(map);
 
+// Custom icon definition for the cache marker
 const cacheIcon = leaflet.icon({
   iconUrl:
     "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png",
@@ -97,6 +101,7 @@ function latLngToCell(lat: number, lng: number): Cell {
   return knownTiles.get(key)!;
 }
 
+// Create a cache at the specified cell and location
 function createCache(cell: Cell, lat: number, lng: number) {
   const cacheMarker = leaflet.marker([lat, lng], {
     icon: cacheIcon,
@@ -121,6 +126,7 @@ function createCache(cell: Cell, lat: number, lng: number) {
   cacheMarker.addTo(map);
 }
 
+// Create a popup for the cache displaying its coins and actions
 function createCachePopup(cache: Cache): HTMLElement {
   const container = document.createElement("div");
   const coinList = cache.coins.map(coin => `${coin.cell.i}:${coin.cell.j}#${coin.serial}`).join(", ");
@@ -146,6 +152,7 @@ function createCachePopup(cache: Cache): HTMLElement {
   return container;
 }
 
+// Collect coins from the specified cache cell
 function collectCoins(cell: Cell) {
   const cacheId = `${cell.i},${cell.j}`;
   const cache = caches.get(cacheId);
@@ -157,6 +164,7 @@ function collectCoins(cell: Cell) {
   }
 }
 
+// Deposit coins into the specified cache cell
 function depositCoins(cell: Cell) {
   const cacheId = `${cell.i},${cell.j}`;
   const cache = caches.get(cacheId);
@@ -168,6 +176,7 @@ function depositCoins(cell: Cell) {
   }
 }
 
+// Update the inventory display with the current coins
 function updateInventoryDisplay() {
   const inventory = document.getElementById("inventory");
   if (inventory) {
@@ -176,6 +185,7 @@ function updateInventoryDisplay() {
   }
 }
 
+// Generate caches around the player's initial location
 function generateCaches() {
   for (let i = -NEIGHBORHOOD_SIZE; i <= NEIGHBORHOOD_SIZE; i++) {
     for (let j = -NEIGHBORHOOD_SIZE; j <= NEIGHBORHOOD_SIZE; j++) {
