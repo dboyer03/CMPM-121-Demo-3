@@ -85,18 +85,6 @@ const cacheIcon = leaflet.icon({
   shadowSize: [41, 41],
 });
 
-function generateCaches() {
-  for (let i = -NEIGHBORHOOD_SIZE; i <= NEIGHBORHOOD_SIZE; i++) {
-    for (let j = -NEIGHBORHOOD_SIZE; j <= NEIGHBORHOOD_SIZE; j++) {
-      if (luck(`${i},${j}`) < CACHE_SPAWN_PROBABILITY) {
-        const lat = PLAYER_LAT + i * TILE_DEGREES;
-        const lng = PLAYER_LNG + j * TILE_DEGREES;
-        createCache({ i, j }, lat, lng);
-      }
-    }
-  }
-}
-
 // Convert latitude–longitude pairs into game cells using a global coordinate system anchored at Null Island
 function latLngToCell(lat: number, lng: number): Cell {
   return {
@@ -181,6 +169,19 @@ function updateInventoryDisplay() {
   if (inventory) {
     const coinList = playerCoins.map(coin => `${coin.cell.i}:${coin.cell.j}#${coin.serial}`).join(", ");
     inventory.textContent = `Current Coins: ${coinList}`;
+  }
+}
+
+function generateCaches() {
+  for (let i = -NEIGHBORHOOD_SIZE; i <= NEIGHBORHOOD_SIZE; i++) {
+    for (let j = -NEIGHBORHOOD_SIZE; j <= NEIGHBORHOOD_SIZE; j++) {
+      if (luck(`${i},${j}`) < CACHE_SPAWN_PROBABILITY) {
+        const lat = PLAYER_LAT + i * TILE_DEGREES;
+        const lng = PLAYER_LNG + j * TILE_DEGREES;
+        const cell = latLngToCell(lat, lng);
+        createCache(cell, lat, lng);
+      }
+    }
   }
 }
 
