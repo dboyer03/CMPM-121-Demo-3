@@ -23,15 +23,20 @@ interface Cell {
   j: number;
 }
 
+interface Coin {
+  cell: Cell;
+  serial: number;
+}
+
 interface Cache {
   cell: Cell;
-  coins: number;
+  coins: Coin[];
   marker: L.Marker;
 }
 
 // State management
 const caches: Map<string, Cache> = new Map();
-let playerCoins = 0;
+let playerCoins: Coin[] = [];
 
 // Create the map with proper zoom constraints
 const map = leaflet.map("map", {
@@ -92,11 +97,24 @@ function generateCaches() {
   }
 }
 
+// Convert latitude–longitude pairs into game cells using a global coordinate system anchored at Null Island
+function latLngToCell(lat: number, lng: number): Cell {
+  return {
+    i: Math.floor(lat / TILE_DEGREES),
+    j: Math.floor(lng / TILE_DEGREES),
+  };
+}
+
 function createCache(cell: Cell, lat: number, lng: number) {
   const cacheMarker = leaflet.marker([lat, lng], {
     icon: cacheIcon,
   });
-  const coins = Math.floor(luck(`${cell.i},${cell.j},coins`) * 10);
+
+  const coins: Coin[] = [];
+  const coinCount = Math.floor(luck(`${cell.i},${cell.j},coins`) * 10);
+  for (let serial = 0; serial < coinCount; serial++) {
+    coins.push({ cell, serial });
+  }
 
   const cache: Cache = {
     cell,
@@ -113,10 +131,11 @@ function createCache(cell: Cell, lat: number, lng: number) {
 
 function createCachePopup(cache: Cache): HTMLElement {
   const container = document.createElement("div");
+  const coinList = cache.coins.map(coin => `${coin.cell.i}:${coin.cell.j}#${coin.serial}`).join(", ");
   const content = `
         <div>
             <p>Cache at (${cache.cell.i}, ${cache.cell.j})</p>
-            <p>Coins: <span id="coins-${cache.cell.i}-${cache.cell.j}">${cache.coins}</span></p>
+            <p>Coins: <span id="coins-${cache.cell.i}-${cache.cell.j}">${coinList}</span></p>
             <button class="collect-btn">Collect</button>
             <button class="deposit-btn">Deposit</button>
         </div>
@@ -138,9 +157,9 @@ function createCachePopup(cache: Cache): HTMLElement {
 function collectCoins(cell: Cell) {
   const cacheId = `${cell.i},${cell.j}`;
   const cache = caches.get(cacheId);
-  if (cache && cache.coins > 0) {
-    playerCoins += cache.coins;
-    cache.coins = 0;
+  if (cache && cache.coins.length > 0) {
+    playerCoins.push(...cache.coins);
+    cache.coins = [];
     cache.marker.setPopupContent(createCachePopup(cache));
     updateInventoryDisplay();
   }
@@ -149,9 +168,9 @@ function collectCoins(cell: Cell) {
 function depositCoins(cell: Cell) {
   const cacheId = `${cell.i},${cell.j}`;
   const cache = caches.get(cacheId);
-  if (cache && playerCoins > 0) {
-    cache.coins += playerCoins;
-    playerCoins = 0;
+  if (cache && playerCoins.length > 0) {
+    cache.coins.push(...playerCoins);
+    playerCoins = [];
     cache.marker.setPopupContent(createCachePopup(cache));
     updateInventoryDisplay();
   }
@@ -160,7 +179,8 @@ function depositCoins(cell: Cell) {
 function updateInventoryDisplay() {
   const inventory = document.getElementById("inventory");
   if (inventory) {
-    inventory.textContent = `Current Coins: ${playerCoins}`;
+    const coinList = playerCoins.map(coin => `${coin.cell.i}:${coin.cell.j}#${coin.serial}`).join(", ");
+    inventory.textContent = `Current Coins: ${coinList}`;
   }
 }
 
