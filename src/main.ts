@@ -36,6 +36,7 @@ interface Cache {
 
 // State management
 const caches: Map<string, Cache> = new Map();
+const knownTiles: Map<string, Cell> = new Map();
 let playerCoins: Coin[] = [];
 
 // Create the map with proper zoom constraints
@@ -87,10 +88,13 @@ const cacheIcon = leaflet.icon({
 
 // Convert latitude–longitude pairs into game cells using a global coordinate system anchored at Null Island
 function latLngToCell(lat: number, lng: number): Cell {
-  return {
-    i: Math.floor(lat / TILE_DEGREES),
-    j: Math.floor(lng / TILE_DEGREES),
-  };
+  const i = Math.floor(lat / TILE_DEGREES);
+  const j = Math.floor(lng / TILE_DEGREES);
+  const key = `${i},${j}`;
+  if (!knownTiles.has(key)) {
+    knownTiles.set(key, { i, j });
+  }
+  return knownTiles.get(key)!;
 }
 
 function createCache(cell: Cell, lat: number, lng: number) {
