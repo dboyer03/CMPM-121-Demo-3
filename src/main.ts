@@ -38,12 +38,16 @@ interface Cache {
   cell: Cell;
   coins: Coin[];
   marker: L.Marker;
+  toMemento(): string;
+  fromMemento(memento: string): void;
 }
 
 // State management
 const caches: Map<string, Cache> = new Map();
 const knownTiles: Map<string, Cell> = new Map();
 let playerCoins: Coin[] = [];
+let playerLat = PLAYER_LAT;
+let playerLng = PLAYER_LNG;
 
 // Create the map with proper zoom constraints
 const map = leaflet.map("map", {
@@ -120,6 +124,12 @@ function createCache(cell: Cell, lat: number, lng: number) {
     cell,
     coins,
     marker: cacheMarker,
+    toMemento() {
+      return JSON.stringify(this.coins);
+    },
+    fromMemento(memento: string) {
+      this.coins = JSON.parse(memento);
+    },
   };
 
   const cacheId = `${cell.i},${cell.j}`;
@@ -206,6 +216,47 @@ function generateCaches() {
   }
 }
 
+function movePlayer(dLat: number, dLng: number) {
+  playerLat += dLat;
+  playerLng += dLng;
+  playerMarker.setLatLng([playerLat, playerLng]);
+  map.setView([playerLat, playerLng]);
+  updateVisibleCaches();
+}
+
+function updateVisibleCaches() {
+  caches.forEach((cache, cacheId) => {
+    const distance = Math.sqrt(
+      Math.pow(cache.cell.i * TILE_DEGREES - playerLat, 2) +
+        Math.pow(cache.cell.j * TILE_DEGREES - playerLng, 2),
+    );
+    if (distance <= NEIGHBORHOOD_SIZE * TILE_DEGREES) {
+      cache.marker.addTo(map);
+    } else {
+      map.removeLayer(cache.marker);
+    }
+  });
+}
+
 // Initialize the game
 generateCaches();
 updateInventoryDisplay();
+updateVisibleCaches();
+
+// Add event listeners for movement buttons
+document.getElementById("moveNorth")?.addEventListener(
+  "click",
+  () => movePlayer(TILE_DEGREES, 0),
+);
+document.getElementById("moveSouth")?.addEventListener(
+  "click",
+  () => movePlayer(-TILE_DEGREES, 0),
+);
+document.getElementById("moveWest")?.addEventListener(
+  "click",
+  () => movePlayer(0, -TILE_DEGREES),
+);
+document.getElementById("moveEast")?.addEventListener(
+  "click",
+  () => movePlayer(0, TILE_DEGREES),
+);

@@ -1,4 +1,4 @@
-root {
+:root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
@@ -52,53 +52,41 @@ body {
   height: 100%;
 }
 
-#controlPanel, #cacheDetailPanel, #inventory {
+#controlPanel {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+#controlPanel button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.5em 1em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+
+#controlPanel button:hover {
+  border-color: #646cff;
+}
+
+#controlPanel button:focus,
+#controlPanel button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+#cacheDetailPanel, #inventory {
   margin-top: 20px;
 }
 
 h1 {
   font-size: 3.2em;
   line-height: 1.1;
-}
-
-#controlPanel {
-  padding: 1rem;
-}
-
-#statusPanel {
-  padding: 1rem;
-}
-
-#buttonContainer {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 1em 2em;
-  font-size: 1.5em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-  display: block;
-  margin: 0 auto;
-  text-align: center;
-  color: white;
-}
-
-button:hover {
-  border-color: #646cff;
-}
-
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
 }
 
 /* Link styles for the map tiles */
