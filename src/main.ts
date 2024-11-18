@@ -234,7 +234,7 @@ function movePlayer(dLat: number, dLng: number) {
 }
 
 function updateVisibleCaches() {
-  caches.forEach((cache, cacheId) => {
+  caches.forEach((cache, _cacheId) => {
     const distance = Math.sqrt(
       Math.pow(cache.cell.i * TILE_DEGREES - playerLat, 2) +
         Math.pow(cache.cell.j * TILE_DEGREES - playerLng, 2),
