@@ -202,14 +202,22 @@ function updateInventoryDisplay() {
   }
 }
 
-// Generate caches around the player's initial location
-function generateCaches() {
+// Generate caches around the player's location
+function generateCaches(centerLat: number, centerLng: number) {
   for (let i = -NEIGHBORHOOD_SIZE; i <= NEIGHBORHOOD_SIZE; i++) {
     for (let j = -NEIGHBORHOOD_SIZE; j <= NEIGHBORHOOD_SIZE; j++) {
-      if (luck(`${i},${j}`) < CACHE_SPAWN_PROBABILITY) {
-        const lat = PLAYER_LAT + i * TILE_DEGREES;
-        const lng = PLAYER_LNG + j * TILE_DEGREES;
-        const cell = latLngToCell(lat, lng);
+      const lat = centerLat + i * TILE_DEGREES;
+      const lng = centerLng + j * TILE_DEGREES;
+      const cell = latLngToCell(lat, lng);
+      const cacheId = `${cell.i},${cell.j}`;
+
+      // Only create a cache if:
+      // 1. It doesn't already exist
+      // 2. The random check based on absolute coordinates passes
+      if (
+        !caches.has(cacheId) &&
+        luck(`cache_at_${cell.i},${cell.j}`) < CACHE_SPAWN_PROBABILITY
+      ) {
         createCache(cell, lat, lng);
       }
     }
@@ -221,6 +229,7 @@ function movePlayer(dLat: number, dLng: number) {
   playerLng += dLng;
   playerMarker.setLatLng([playerLat, playerLng]);
   map.setView([playerLat, playerLng]);
+  generateCaches(playerLat, playerLng);
   updateVisibleCaches();
 }
 
@@ -239,7 +248,7 @@ function updateVisibleCaches() {
 }
 
 // Initialize the game
-generateCaches();
+generateCaches(playerLat, playerLng);
 updateInventoryDisplay();
 updateVisibleCaches();
 
