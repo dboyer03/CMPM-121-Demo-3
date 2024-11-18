@@ -49,6 +49,11 @@ let playerCoins: Coin[] = [];
 let playerLat = PLAYER_LAT;
 let playerLng = PLAYER_LNG;
 
+// Additional state management
+let locationWatcher: number | null = null;
+let movementHistory: L.Polyline | null = null;
+const locationHistory: [number, number][] = [];
+
 // Create the map with proper zoom constraints
 const map = leaflet.map("map", {
   center: [PLAYER_LAT, PLAYER_LNG],
@@ -142,18 +147,32 @@ function createCache(cell: Cell, lat: number, lng: number) {
 // Create a popup for the cache displaying its coins and actions
 function createCachePopup(cache: Cache): HTMLElement {
   const container = document.createElement("div");
-  const coinList = cache.coins.map((coin) =>
-    `${coin.cell.i}:${coin.cell.j}#${coin.serial}`
-  ).join(", ");
+  const coinList = cache.coins.map((coin) => {
+    const coinId = `${coin.cell.i}:${coin.cell.j}#${coin.serial}`;
+    return `<span class="coin-id" style="cursor: pointer; text-decoration: underline;" 
+            data-lat="${coin.cell.i * TILE_DEGREES}" 
+            data-lng="${coin.cell.j * TILE_DEGREES}">${coinId}</span>`;
+  }).join(", ");
+
   const content = `
-        <div>
-            <p>Cache at (${cache.cell.i}, ${cache.cell.j})</p>
-            <p>Coins: <span id="coins-${cache.cell.i}-${cache.cell.j}">${coinList}</span></p>
-            <button class="collect-btn">Collect</button>
-            <button class="deposit-btn">Deposit</button>
-        </div>
-    `;
+    <div>
+      <p>Cache at (${cache.cell.i}, ${cache.cell.j})</p>
+      <p>Coins: <span id="coins-${cache.cell.i}-${cache.cell.j}">${coinList}</span></p>
+      <button class="collect-btn">Collect</button>
+      <button class="deposit-btn">Deposit</button>
+    </div>
+  `;
+
   container.innerHTML = content;
+
+  container.querySelectorAll(".coin-id").forEach((elem) => {
+    elem.addEventListener("click", (e) => {
+      const target = e.target as HTMLElement;
+      const lat = parseFloat(target.dataset.lat || "0");
+      const lng = parseFloat(target.dataset.lng || "0");
+      map.setView([lat, lng]);
+    });
+  });
 
   container.querySelector(".collect-btn")?.addEventListener(
     "click",
@@ -176,6 +195,7 @@ function collectCoins(cell: Cell) {
     cache.coins = [];
     cache.marker.setPopupContent(createCachePopup(cache));
     updateInventoryDisplay();
+    saveGameState();
   }
 }
 
@@ -188,6 +208,7 @@ function depositCoins(cell: Cell) {
     playerCoins = [];
     cache.marker.setPopupContent(createCachePopup(cache));
     updateInventoryDisplay();
+    saveGameState();
   }
 }
 
@@ -224,13 +245,133 @@ function generateCaches(centerLat: number, centerLng: number) {
   }
 }
 
-function movePlayer(dLat: number, dLng: number) {
-  playerLat += dLat;
-  playerLng += dLng;
-  playerMarker.setLatLng([playerLat, playerLng]);
-  map.setView([playerLat, playerLng]);
-  generateCaches(playerLat, playerLng);
+// Load saved state from localStorage
+function loadGameState() {
+  const savedState = localStorage.getItem("gameState");
+  if (savedState) {
+    const state = JSON.parse(savedState);
+    playerLat = state.playerLat;
+    playerLng = state.playerLng;
+    playerCoins = state.playerCoins;
+    locationHistory.push(...state.locationHistory);
+
+    // Restore cache states
+    state.caches.forEach(
+      (cacheState: { lat: number; lng: number; memento: string }) => {
+        const cell = latLngToCell(cacheState.lat, cacheState.lng);
+        const cache = caches.get(`${cell.i},${cell.j}`);
+        if (cache) {
+          cache.fromMemento(cacheState.memento);
+        }
+      },
+    );
+
+    // Update display
+    playerMarker.setLatLng([playerLat, playerLng]);
+    map.setView([playerLat, playerLng]);
+    updateVisibleCaches();
+    updateInventoryDisplay();
+    drawMovementHistory();
+  }
+}
+
+// Save current state to localStorage
+function saveGameState() {
+  const state = {
+    playerLat,
+    playerLng,
+    playerCoins,
+    locationHistory,
+    caches: Array.from(caches.values()).map((cache) => ({
+      lat: cache.cell.i * TILE_DEGREES,
+      lng: cache.cell.j * TILE_DEGREES,
+      memento: cache.toMemento(),
+    })),
+  };
+  localStorage.setItem("gameState", JSON.stringify(state));
+}
+
+// Draw movement history on the map
+function drawMovementHistory() {
+  if (movementHistory) {
+    map.removeLayer(movementHistory);
+  }
+  movementHistory = leaflet.polyline(locationHistory, {
+    color: "blue",
+    weight: 2,
+    opacity: 0.5,
+  }).addTo(map);
+}
+
+// Update player position and related state
+function updatePlayerPosition(lat: number, lng: number) {
+  playerLat = lat;
+  playerLng = lng;
+  playerMarker.setLatLng([lat, lng]);
+  map.setView([lat, lng]);
+  locationHistory.push([lat, lng]);
+  drawMovementHistory();
+  generateCaches(lat, lng);
   updateVisibleCaches();
+  saveGameState();
+}
+
+// Handle geolocation
+function startLocationTracking() {
+  if ("geolocation" in navigator) {
+    locationWatcher = navigator.geolocation.watchPosition(
+      (position) => {
+        updatePlayerPosition(
+          position.coords.latitude,
+          position.coords.longitude,
+        );
+      },
+      (error) => console.error("Error getting location:", error),
+      {
+        enableHighAccuracy: true,
+        maximumAge: 0,
+        timeout: 5000,
+      },
+    );
+  } else {
+    alert("Geolocation is not supported by your browser");
+  }
+}
+
+function stopLocationTracking() {
+  if (locationWatcher !== null) {
+    navigator.geolocation.clearWatch(locationWatcher);
+    locationWatcher = null;
+  }
+}
+
+// Reset game state
+function resetGameState() {
+  if (
+    confirm(
+      "Are you sure you want to reset the game? This will erase all progress and location history.",
+    )
+  ) {
+    localStorage.removeItem("gameState");
+    playerLat = PLAYER_LAT;
+    playerLng = PLAYER_LNG;
+    playerCoins = [];
+    locationHistory.length = 0;
+    caches.clear();
+    if (movementHistory) {
+      map.removeLayer(movementHistory);
+      movementHistory = null;
+    }
+    stopLocationTracking();
+    generateCaches(playerLat, playerLng);
+    updateVisibleCaches();
+    updateInventoryDisplay();
+  }
+}
+
+// Modify the movePlayer function to include history
+function movePlayer(dLat: number, dLng: number) {
+  updatePlayerPosition(playerLat + dLat, playerLng + dLng);
 }
 
 function updateVisibleCaches() {
@@ -251,6 +392,7 @@ function updateVisibleCaches() {
 generateCaches(playerLat, playerLng);
 updateInventoryDisplay();
 updateVisibleCaches();
+loadGameState();
 
 // Add event listeners for movement buttons
 document.getElementById("moveNorth")?.addEventListener(
@@ -269,3 +411,14 @@ document.getElementById("moveEast")?.addEventListener(
   "click",
   () => movePlayer(0, TILE_DEGREES),
 );
+
+// Event listeners for new buttons
+document.getElementById("geolocate")?.addEventListener("click", () => {
+  if (locationWatcher === null) {
+    startLocationTracking();
+  } else {
+    stopLocationTracking();
+  }
+});
+
+document.getElementById("reset")?.addEventListener("click", resetGameState);
