@@ -216,10 +216,24 @@ function depositCoins(cell: Cell) {
 function updateInventoryDisplay() {
   const inventory = document.getElementById("inventory");
   if (inventory) {
-    const coinList = playerCoins.map((coin) =>
-      `${coin.cell.i}:${coin.cell.j}#${coin.serial}`
-    ).join(", ");
-    inventory.textContent = `Current Coins: ${coinList}`;
+    const coinElements = playerCoins.map((coin) => {
+      const coinId = `${coin.cell.i}:${coin.cell.j}#${coin.serial}`;
+      return `<span class="coin-id" style="cursor: pointer; text-decoration: underline;" 
+              data-lat="${coin.cell.i * TILE_DEGREES}" 
+              data-lng="${coin.cell.j * TILE_DEGREES}">${coinId}</span>`;
+    }).join(", ");
+
+    inventory.innerHTML = `Current Coins: ${coinElements}`;
+
+    // Add click handlers for coin identifiers
+    inventory.querySelectorAll(".coin-id").forEach((elem) => {
+      elem.addEventListener("click", (e) => {
+        const target = e.target as HTMLElement;
+        const lat = parseFloat(target.dataset.lat || "0");
+        const lng = parseFloat(target.dataset.lng || "0");
+        map.setView([lat, lng]);
+      });
+    });
   }
 }
 
@@ -255,14 +269,40 @@ function loadGameState() {
     playerCoins = state.playerCoins;
     locationHistory.push(...state.locationHistory);
 
-    // Restore cache states
+    // Clear existing caches and restore saved cache states
+    caches.clear();
+
+    // Restore cache states with their coins
     state.caches.forEach(
       (cacheState: { lat: number; lng: number; memento: string }) => {
         const cell = latLngToCell(cacheState.lat, cacheState.lng);
-        const cache = caches.get(`${cell.i},${cell.j}`);
-        if (cache) {
-          cache.fromMemento(cacheState.memento);
-        }
+        const lat = cell.i * TILE_DEGREES;
+        const lng = cell.j * TILE_DEGREES;
+
+        // Create the cache if it doesn't exist
+        const cacheMarker = leaflet.marker([lat, lng], {
+          icon: cacheIcon,
+        });
+
+        const cache: Cache = {
+          cell,
+          coins: [],
+          marker: cacheMarker,
+          toMemento() {
+            return JSON.stringify(this.coins);
+          },
+          fromMemento(memento: string) {
+            this.coins = JSON.parse(memento);
+          },
+        };
+
+        // Restore the cache's state from the memento
+        cache.fromMemento(cacheState.memento);
+
+        // Add the cache to the map
+        const cacheId = `${cell.i},${cell.j}`;
+        caches.set(cacheId, cache);
+        cacheMarker.bindPopup(createCachePopup(cache));
       },
     );
 
@@ -272,6 +312,9 @@ function loadGameState() {
     updateVisibleCaches();
     updateInventoryDisplay();
     drawMovementHistory();
+  } else {
+    // If no saved state exists, generate initial caches
+    generateCaches(playerLat, playerLng);
   }
 }
 
@@ -326,13 +369,22 @@ function startLocationTracking() {
           position.coords.longitude,
         );
       },
-      (error) => console.error("Error getting location:", error),
+      (error) => {
+        console.error("Error getting location:", error);
+        stopLocationTracking();
+      },
       {
         enableHighAccuracy: true,
         maximumAge: 0,
         timeout: 5000,
       },
     );
+
+    // Visual feedback that tracking is active
+    const geolocateButton = document.getElementById("geolocate");
+    if (geolocateButton) {
+      geolocateButton.style.backgroundColor = "#646cff";
+    }
   } else {
     alert("Geolocation is not supported by your browser");
   }
@@ -342,6 +394,12 @@ function stopLocationTracking() {
   if (locationWatcher !== null) {
     navigator.geolocation.clearWatch(locationWatcher);
     locationWatcher = null;
+
+    // Visual feedback that tracking is inactive
+    const geolocateButton = document.getElementById("geolocate");
+    if (geolocateButton) {
+      geolocateButton.style.backgroundColor = "";
+    }
   }
 }
 
@@ -389,10 +447,9 @@ function updateVisibleCaches() {
 }
 
 // Initialize the game
-generateCaches(playerLat, playerLng);
+loadGameState();
 updateInventoryDisplay();
 updateVisibleCaches();
-loadGameState();
 
 // Add event listeners for movement buttons
 document.getElementById("moveNorth")?.addEventListener(
