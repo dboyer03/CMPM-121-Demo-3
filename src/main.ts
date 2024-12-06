@@ -113,17 +113,27 @@ function latLngToCell(lat: number, lng: number): Cell {
   return knownTiles.get(key)!;
 }
 
-// Create a cache at the specified cell and location
-function createCache(cell: Cell, lat: number, lng: number) {
-  const cacheMarker = leaflet.marker([lat, lng], {
+// Create marker factory function
+function createCacheMarker(lat: number, lng: number): L.Marker {
+  return leaflet.marker([lat, lng], {
     icon: cacheIcon,
   });
+}
 
+// Extract coin generation to a separate function
+function generateCoinsForCell(cell: Cell): Coin[] {
   const coins: Coin[] = [];
   const coinCount = Math.floor(luck(`${cell.i},${cell.j},coins`) * 10);
   for (let serial = 0; serial < coinCount; serial++) {
     coins.push({ cell, serial });
   }
+  return coins;
+}
+
+// Modified cache creation function with improved cohesion
+function createCache(cell: Cell, lat: number, lng: number) {
+  const cacheMarker = createCacheMarker(lat, lng);
+  const coins = generateCoinsForCell(cell);
 
   const cache: Cache = {
     cell,
